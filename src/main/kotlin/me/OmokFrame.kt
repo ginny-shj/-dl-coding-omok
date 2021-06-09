@@ -29,7 +29,7 @@ class OmokFrame : JFrame() {
 
         init {
             background = Color(248, 190, 100)
-            addMouseListener(object : MouseAdapter() { //클래스 따로 빼기
+            addMouseListener(object : MouseAdapter() {
                 override fun mouseClicked(e: MouseEvent) {
                     if (validLocation(e.x, e.y)) {
                         val y = (round(e.x / STONE_SIZE.toDouble()) - 1).toInt()

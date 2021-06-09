@@ -21,10 +21,10 @@ class Operation(private val boardSize: Int){
         for (oneCell in 1..4) {
             if (matrix[row + (dRow * oneCell)][col + (dCol * oneCell)] != player.color)  return false
         }
-        return true //누군가가 이겼다.
+        return true
     }
     fun checkWinnerDirection(
-        matrix: List<MutableList<Int>>, //리스트 <Int> 를 size 바꿀 수 있는 방법?-> class
+        matrix: List<MutableList<Int>>,
         boardSize: Int,
         player: Player
     ): Boolean {
