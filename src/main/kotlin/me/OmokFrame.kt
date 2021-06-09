@@ -1,96 +1,97 @@
 package me
+
 import java.awt.Color
-import java.awt.Font
 import java.awt.Graphics
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
 import kotlin.math.round
 
-//TODO : 1) UI - 바둑판가운데점, 순서안내, 2) config 파일 따로 만들기 / MVC로 만들기
+//TODO : 1) MVC or MVVM 만들기, 2) 심판, AI2 서버 만들어서 승률 UI
 
 class OmokFrame : JFrame() {
 
-    var sizeStone: Int = 30
-    var sizeLine: Int = 19
-
-    val BLACK: Int = 1
-    val WHITE: Int = 2
-
-    val mapping = Map(sizeLine)
-    val map = mapping.getMap()
-    val players: List<Player> = listOf(Player(BLACK), Player(WHITE))
-    val popup = Popup()
-
-    init {
-        this.setTitle("오목 게임")
-        this.defaultCloseOperation = EXIT_ON_CLOSE
-        val pannel = MyPannel()
-        contentPane = pannel
-        pannel.isFocusable = true
-        pannel.background = Color(248,190,100)
-        this.setSize(650, 650)
-        this.isVisible = true
+    companion object {
+        private const val STONE_SIZE: Int = 30
+        private const val BOARD_SIZE: Int = 19
+        private const val BLACK: Int = 1
+        private const val WHITE: Int = 2
     }
 
-    inner class MyPannel : JPanel() {
-        var x_click: Int = -1
-        var y_click: Int = -1
+    private val operation = Operation(BOARD_SIZE)
+    private val matrix = operation.matrix
+    private val players: List<Player> = listOf(Player(BLACK), Player(WHITE))
+    private val popup = Popup()
+
+    inner class OmokPanel : JPanel() {
+        private var xClick: Int = -1
+        private var yClick: Int = -1
 
         init {
-            addMouseListener(object : MouseAdapter() {
-                override fun mouseClicked(e:MouseEvent) {
-                    if (sizeStone*1.5 <= e.x && e.x <= sizeStone*(sizeLine-0.5)
-                        && sizeStone*1.5 <= e.y && e.y <= sizeStone*(sizeLine-0.5)){ //이 범위 내에 마우스가 클릭되었을 때,
-                        val y = (round(e.x / sizeStone.toDouble()) - 1).toInt()
-                        val x = (round(e.y / sizeStone.toDouble()) - 1).toInt()
+            background = Color(248, 190, 100)
+            addMouseListener(object : MouseAdapter() { //클래스 따로 빼기
+                override fun mouseClicked(e: MouseEvent) {
+                    if (validLocation(e.x, e.y)) {
+                        val y = (round(e.x / STONE_SIZE.toDouble()) - 1).toInt()
+                        val x = (round(e.y / STONE_SIZE.toDouble()) - 1).toInt()
 
-                        if (map[x][y] == BLACK || map[x][y] == WHITE) { popup.putPopup()
-                        } else{
-                            if (mapping.orderBW) map[x][y] = BLACK
-                            else map[x][y] = WHITE
-                            mapping.orderCheck() //순서 바꿔주기
-                            x_click = y
-                            y_click = x
+                        if (matrix[x][y] == BLACK || matrix[x][y] == WHITE) {
+                            popup.popupWarning()
+                        } else {
+                            if (operation.order) {
+                                matrix[x][y] = BLACK
+                            } else {
+                                matrix[x][y] = WHITE
+                            }
+                            operation.changeOrder()
+                            xClick = y
+                            yClick = x
                         }
                     }
                     repaint()
-                    for (i in players.indices){
-                        if (mapping.winCheck(map, sizeLine, players[i])) {
-                            popup.winPopup(players[i])
-                    }
+                    for (i in players.indices) {
+                        if (operation.checkWinnerDirection(matrix, BOARD_SIZE, players[i])) {
+                            popup.popupWinner(players[i])
+                        }
                     }
                 }
-            })
+
+                fun validLocation(x: Int, y: Int): Boolean {
+                    return (STONE_SIZE * 1.5 <= x && x <= STONE_SIZE * (BOARD_SIZE - 0.5)
+                            && STONE_SIZE * 1.5 <= y && y <= STONE_SIZE * (BOARD_SIZE - 0.5))
+                }
+
+            }
+            )
         }
 
         override fun paintComponent(g: Graphics) {
             super.paintComponent(g)
 
-            for (i in 0..sizeLine) {
-                g.setColor(Color.BLACK)
-                g.drawLine(sizeStone, sizeStone * i, sizeStone * sizeLine, sizeStone * i) //x: 행, y: 열
-                g.drawLine(sizeStone * i, sizeStone, sizeStone * i, sizeStone * sizeLine) //x: 행, y: 열
+            for (i in 0..BOARD_SIZE) {
+                g.color = Color.BLACK
+                g.drawLine(STONE_SIZE, STONE_SIZE * i, STONE_SIZE * BOARD_SIZE, STONE_SIZE * i) //x: 행, y: 열
+                g.drawLine(STONE_SIZE * i, STONE_SIZE, STONE_SIZE * i, STONE_SIZE * BOARD_SIZE) //x: 행, y: 열
 
-                for (x in 0 until sizeLine) { //map 사이즈는 줄보다 한개씩 작음
-                    for (y in 0 until sizeLine) {
-                        when (map[y][x].toString()) {
+                for (x in 0 until BOARD_SIZE) {
+                    for (y in 0 until BOARD_SIZE) {
+                        when (matrix[y][x].toString()) {
                             1.toString() -> {
-                                g.setColor(Color.BLACK)
+                                g.color = Color.BLACK
                                 g.fillOval(
-                                    x * sizeStone + sizeStone / 2,
-                                    y * sizeStone + sizeStone / 2,
-                                    sizeStone - 1,
-                                    sizeStone - 1
+                                    x * STONE_SIZE + STONE_SIZE / 2,
+                                    y * STONE_SIZE + STONE_SIZE / 2,
+                                    STONE_SIZE - 1,
+                                    STONE_SIZE - 1
                                 )
                             }
                             2.toString() -> {
-                                g.setColor(Color.WHITE)
+                                g.color = Color.WHITE
                                 g.fillOval(
-                                    x * sizeStone + sizeStone / 2,
-                                    y * sizeStone + sizeStone / 2,
-                                    sizeStone - 1,
-                                    sizeStone - 1
+                                    x * STONE_SIZE + STONE_SIZE / 2,
+                                    y * STONE_SIZE + STONE_SIZE / 2,
+                                    STONE_SIZE - 1,
+                                    STONE_SIZE - 1
                                 )
                             }
                         }
@@ -98,5 +99,14 @@ class OmokFrame : JFrame() {
                 }
             }
         }
+    }
+
+    init {
+        this.title = "오목 게임"
+        this.defaultCloseOperation = EXIT_ON_CLOSE
+        val omokPanel = OmokPanel()
+        contentPane = omokPanel
+        this.setSize(650, 650)
+        this.isVisible = true
     }
 }
